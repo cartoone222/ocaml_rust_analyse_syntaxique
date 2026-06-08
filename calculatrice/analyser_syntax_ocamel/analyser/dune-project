@@ -1,0 +1,23 @@
+(lang dune 3.20)
+
+(name analyser)
+
+(generate_opam_files true)
+
+(authors "Cartoone <cartoone_222[@]proton.me>")
+
+(maintainers "Nobody")
+
+(license GPL-3.0-or-later)
+
+(documentation https://url/to/documentation)
+
+(package
+ (name analyser)
+ (synopsis "an syntaxique analyser")
+ (description "this projecte is an syntaxique analyser for aritmetic expression.")
+ (depends ocaml)
+ (tags
+  ("")))
+
+; See the complete stanza docs at https://dune.readthedocs.io/en/stable/reference/dune-project/index.html
