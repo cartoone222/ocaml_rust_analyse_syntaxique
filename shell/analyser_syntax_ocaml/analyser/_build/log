@@ -1,0 +1,7 @@
+# dune init project analyser
+# OCAMLPARAM: unset
+# Shared cache: enabled-except-user-rules
+# Shared cache location: /home/cartoone/.cache/dune/db
+# Workspace root:
+# /home/cartoone/Documents/projet/learn_Rust/tmp/ocaml_rust_analyse_syntaxique/shell/analyser_syntax_ocaml/analyser
+# Auto-detected concurrency: 4

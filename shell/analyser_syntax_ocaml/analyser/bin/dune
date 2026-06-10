@@ -1,0 +1,4 @@
+(executable
+ (public_name analyser)
+ (name main)
+ (libraries analyser))
