@@ -1,2 +1,3 @@
 (library
- (name analyser))
+ (name AnalyseurShell)
+ (public_name analyser))
