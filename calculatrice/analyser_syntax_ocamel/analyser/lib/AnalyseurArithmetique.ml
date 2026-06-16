@@ -68,5 +68,4 @@ let rec jsonify = function
 let parseurjson inp = match parseur inp with
                                   | [] -> ""
                                   | (c, _) :: _ -> jsonify c
-
-let () = Callback.register "parseurjson" parseurjson
+                                  
