@@ -37,7 +37,7 @@ let digit = sat (fun c -> List.mem c ['0'; '1'; '2'; '3'; '4'; '5'; '6'; '7'; '8
 let lettre       = sat (fun c -> List.mem c ['a'; 'b'; 'c'; 'd'; 'e'; 'f'; 'g'; 'h'; 'i'; 'j'; 'k'; 'l'; 'm'; 'n'; 'o'; 'p'; 'q'; 'r'; 's'; 't'; 'u'; 'v'; 'w'; 'x'; 'y'; 'z'])
 let upperlettre  = sat (fun c -> List.mem c ['A'; 'B'; 'C'; 'D'; 'E'; 'F'; 'G'; 'H'; 'I'; 'J'; 'K'; 'L'; 'M'; 'N'; 'O'; 'P'; 'Q'; 'R'; 'S'; 'T'; 'U'; 'V'; 'W'; 'X'; 'Y'; 'Z'])
 let lightspecial = sat (fun c -> List.mem c ['/'; '.'])
-let special      = sat (fun c -> List.mem c ['!'; '\\'; '#'; '$'; '%'; '&'; '\''; '('; ')'; '*'; '+'; ','; '-'; '.'; '/'; ':'; ';'; '<'; '='; '>'; '?'; '@'; '['; ']'; '^'; '_'; '`'; '{'; '|'; '}'; '~'])
+let special      = sat (fun c -> List.mem c ['!'; '\\'; '#'; '$'; '%'; '&'; '('; ')'; '*'; '+'; ','; '-'; '.'; '/'; ':'; ';'; '<'; '='; '>'; '?'; '@'; '['; ']'; '^'; '_'; '`'; '{'; '|'; '}'; '~'])
 let space = char ' '
 let spaces = many space
 let underscore = char '_'
@@ -53,15 +53,15 @@ let word = let>>= cs = some (alphanum <|> special) in
 
 let var = char '$' >> let>>= name = light_word in pure name
 
-let parentised p =
-  char '(' >>
-  let>>= v = p in
-  char ')' >>
-  pure v
+let parentised p = char '(' >>
+                   let>>= v = p in
+                   char ')' >>
+                   pure v
 
-let quoted_str = char '\'' >> 
-                 let>>= c = many (word <|> string " ") in 
-                 char '\'' >> 
+
+let quoted_str = string "'" >>
+                 let>>= c = many (word <|> string " ") in
+                 string "'" >>
                  pure (String.concat "" c)
 
 (* _______________________ main parseur _______________________ *)
@@ -70,7 +70,7 @@ let p_dquotword_flat  = let>>= fl = word  in pure (Flatqd fl)
 let p_dquotword_var   = let>>= vn = var   in pure (Varqd vn)
 
 let p_arg_flat        = let>>= w = light_word in pure (Flat w)
-let p_arg_quot        = let>>= str = quoted_str in pure (Quot (str))
+let p_arg_quot        = let>>= str = quoted_str in pure (Quot str)
 and p_arg_var         = let>>= vn = var in pure (Var vn)
 
 let op_logique = (spaces >> string "&"  >> spaces >> pure (fun a b -> And     (a,b))) <|>
@@ -112,8 +112,8 @@ and p_expr_affectVar inp = (let>>= name = light_word in
                             pure (AffectVar (name, var))) inp
 and p_expr_affectDq  inp = ((let>>= name = light_word in
                             char '=' >>
-                            let>>= l = manysep p_dquotword spaces in
-                            pure (AffectDq (name, l)))) inp
+                            let>>= l = char '"' >> manysep p_dquotword spaces in
+                            char '"' >> pure (AffectDq (name, l)))) inp
 
 and op_pipe = (spaces >> char   '>'  >> spaces >> pure (fun a b -> Pipeout    (a, b))) <|> (* casser a fix c'est pas bon *)
               (spaces >> string "<"  >> spaces >> pure (fun a b -> Pipein     (a, b))) <|> (* casser a fix c'est pas bon *)

@@ -35,3 +35,7 @@ let () =
   match p_expr_command "test \"test $()\"        abc" with
     | [] -> ();
     | (a, b) :: _ -> print_endline (jsonify a ^ "\n" ^ "(" ^ b ^ ")");
+
+  match quoted_str "'je suis'" with
+    | [] -> ();
+    | (a, b) :: _ -> print_endline (a ^ "\n" ^ "(" ^ b ^ ")");
