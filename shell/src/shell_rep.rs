@@ -2,15 +2,19 @@ use std::{io::{self}};
 use serde_json::Value;
 
 pub enum Expr {
-    Affect     (String   , Box<Expr>),
+    Parentised (Box<Expr>),
+    AffectSsh  (String   , Box<Expr>),
+    AffectStr  (String   , String),
+    AffectVar  (String   , String),
+    AffectDq   (String   , Vec<Dquotword>),
     And        (Box<Expr>, Box<Expr>),
     Andlasy    (Box<Expr>, Box<Expr>),
     Or         (Box<Expr>, Box<Expr>),
     Orlasy     (Box<Expr>, Box<Expr>),
-    Pipeout    (Box<Expr>, Box<Expr>),
-    Pipein     (Box<Expr>, Box<Expr>),
-    Pipeoutsup (Box<Expr>, Box<Expr>),
-    Pipeerr    (Box<Expr>, Box<Expr>),
+    Pipeout    (Box<Expr>, String),
+    Pipein     (Box<Expr>, String),
+    Pipeoutsup (Box<Expr>, String),
+    Pipeerr    (Box<Expr>, String),
     Chain      (Box<Expr>, Box<Expr>),
     Command    (Vec<Arg>),
 }
@@ -96,15 +100,19 @@ fn json_to_ast(json_obj : &Value) -> io::Result<Expr> {
             match item_type {
                 "Expr"      => {
                     match item_op{
-                        "Affect"      => Ok(Expr::Affect(value_to_string(&item_args[0])?.to_string(), Box::new(json_to_ast(&item_args[1])?))),
+                        "Parentised"  => Ok(Expr::Parentised(Box::new(json_to_ast(&item_args[0])?))),
+                        "AffectSsh"   => Ok(Expr::AffectSsh(value_to_string(&item_args[0])?.to_string(), Box::new(json_to_ast(&item_args[1])?))),
+                        "AffectStr"   => Ok(Expr::AffectStr(value_to_string(&item_args[0])?.to_string(), value_to_string(&item_args[1])?.to_string())),
+                        "AffectVar"   => Ok(Expr::AffectVar(value_to_string(&item_args[0])?.to_string(), value_to_string(&item_args[1])?.to_string())),
+                        "AffectDq"    => Ok(Expr::AffectDq(value_to_string(&item_args[0])?.to_string(), item_args.iter().flat_map(json_to_dquotword).collect())), // coriger je doit pas recupre la premier valeur
                         "And"         => Ok(Expr::And(Box::new(json_to_ast(&item_args[0])?), Box::new(json_to_ast(&item_args[1])?))),
                         "Andlasy"     => Ok(Expr::Andlasy(Box::new(json_to_ast(&item_args[0])?), Box::new(json_to_ast(&item_args[1])?))),
                         "Or"          => Ok(Expr::Or(Box::new(json_to_ast(&item_args[0])?), Box::new(json_to_ast(&item_args[1])?))),
                         "Orlasy"      => Ok(Expr::Orlasy(Box::new(json_to_ast(&item_args[0])?), Box::new(json_to_ast(&item_args[1])?))),
-                        "Pipeout"     => Ok(Expr::Pipeout(Box::new(json_to_ast(&item_args[0])?), Box::new(json_to_ast(&item_args[1])?))),
-                        "Pipein"      => Ok(Expr::Pipein(Box::new(json_to_ast(&item_args[0])?), Box::new(json_to_ast(&item_args[1])?))),
-                        "Pipeoutsup"  => Ok(Expr::Pipeoutsup(Box::new(json_to_ast(&item_args[0])?), Box::new(json_to_ast(&item_args[1])?))),
-                        "Pipeerr"     => Ok(Expr::Pipeerr(Box::new(json_to_ast(&item_args[0])?), Box::new(json_to_ast(&item_args[1])?))),
+                        "Pipeout"     => Ok(Expr::Pipeout(Box::new(json_to_ast(&item_args[0])?), value_to_string(&item_args[1])?.to_string())),
+                        "Pipein"      => Ok(Expr::Pipein(Box::new(json_to_ast(&item_args[0])?), value_to_string(&item_args[1])?.to_string())),
+                        "Pipeoutsup"  => Ok(Expr::Pipeoutsup(Box::new(json_to_ast(&item_args[0])?), value_to_string(&item_args[1])?.to_string())),
+                        "Pipeerr"     => Ok(Expr::Pipeerr(Box::new(json_to_ast(&item_args[0])?), value_to_string(&item_args[1])?.to_string())),
                         "Chain"       => Ok(Expr::Chain(Box::new(json_to_ast(&item_args[0])?), Box::new(json_to_ast(&item_args[1])?))),
                         "Command"     => Ok(Expr::Command(item_args.iter().flat_map(json_to_arg).collect())),
                         _             => Err(io::Error::new(io::ErrorKind::InvalidData, format!("problemme dans le champs op"))),
