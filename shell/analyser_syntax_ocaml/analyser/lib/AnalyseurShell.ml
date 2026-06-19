@@ -73,12 +73,17 @@ let p_arg_flat        = let>>= w = light_word in pure (Flat w)
 let p_arg_quot        = let>>= str = quoted_str in pure (Quot str)
 and p_arg_var         = let>>= vn = var in pure (Var vn)
 
-let op_logique = (spaces >> string "&"  >> spaces >> pure (fun a b -> And     (a,b))) <|>
-                 (spaces >> string "&&" >> spaces >> pure (fun a b -> Andlasy (a,b))) <|>
-                 (spaces >> string "|"  >> spaces >> pure (fun a b -> Or      (a,b))) <|>
-                 (spaces >> string "||" >> spaces >> pure (fun a b -> Orlasy  (a,b)))
+let op_logique = (spaces >> string "&&" >> spaces >> pure (fun a b -> Andlasy (a,b))) <|>
+                 (spaces >> string "&"  >> spaces >> pure (fun a b -> And     (a,b))) <|>
+                 (spaces >> string "||" >> spaces >> pure (fun a b -> Orlasy  (a,b))) <|>
+                 (spaces >> string "|"  >> spaces >> pure (fun a b -> Or      (a,b))) 
 
 let op_chain = (spaces >> char ';' >> spaces >> pure (fun a b -> Chain (a, b)))
+
+let op_pipe = (spaces >> char   '>'  >> spaces >> let>>= str = light_word in pure (fun a -> Pipeout    (a, str))) <|>
+              (spaces >> string "<"  >> spaces >> let>>= str = light_word in pure (fun a -> Pipein     (a, str))) <|>
+              (spaces >> string ">>" >> spaces >> let>>= str = light_word in pure (fun a -> Pipeoutsup (a, str))) <|>
+              (spaces >> string "2>" >> spaces >> let>>= str = light_word in pure (fun a -> Pipeerr    (a, str)))    
 
 let rec subsh inp = (string "$(" >>
             let>>= expr = p_expr in
@@ -115,13 +120,10 @@ and p_expr_affectDq  inp = ((let>>= name = light_word in
                             let>>= l = char '"' >> manysep p_dquotword spaces in
                             char '"' >> pure (AffectDq (name, l)))) inp
 
-and op_pipe = (spaces >> char   '>'  >> spaces >> pure (fun a b -> Pipeout    (a, b))) <|> (* casser a fix c'est pas bon *)
-              (spaces >> string "<"  >> spaces >> pure (fun a b -> Pipein     (a, b))) <|> (* casser a fix c'est pas bon *)
-              (spaces >> string ">>" >> spaces >> pure (fun a b -> Pipeoutsup (a, b))) <|> (* casser a fix c'est pas bon *)
-              (spaces >> string "2>" >> spaces >> pure (fun a b -> Pipeerr    (a, b)))     (* casser a fix c'est pas bon *)
-
-and p_expr_chaine  input = (chainl1 p_expr_pipe op_chain   ) input
-and p_expr_pipe    input = (p_expr_logique) input (* TODO pipe clause *)
+and p_expr_chaine  input = (chainl1 p_expr_pipe    op_chain  ) input
+and p_expr_pipe    input = (let>>= base = p_expr_logique in
+                            let>>= l_red = many op_pipe in
+                            pure (List.fold_left (fun a f -> f a) base l_red)) input
 and p_expr_logique input = (chainl1 p_expr_atome op_logique) input
 and p_expr_atome   input = (p_expr_parentised <|> 
                             p_expr_affectSsh <|> 
@@ -149,10 +151,10 @@ let rec jsonify = function
   | Andlasy    (expr1, expr2) -> jsontemplat "Expr" "Andlasy"    (jsonify expr1 ^ "," ^ jsonify expr2)
   | Or         (expr1, expr2) -> jsontemplat "Expr" "Or"         (jsonify expr1 ^ "," ^ jsonify expr2)
   | Orlasy     (expr1, expr2) -> jsontemplat "Expr" "Orlasy"     (jsonify expr1 ^ "," ^ jsonify expr2)
-  | Pipein     (expr1, str)   -> jsontemplat "Expr" "Pipein"     (jsonify expr1 ^ "," ^ str)
-  | Pipeout    (expr1, str)   -> jsontemplat "Expr" "Pipeoutsup" (jsonify expr1 ^ "," ^ str)
-  | Pipeoutsup (expr1, str)   -> jsontemplat "Expr" "Pipeoutsup" (jsonify expr1 ^ "," ^ str)
-  | Pipeerr    (expr1, str)   -> jsontemplat "Expr" "Pipeerr"    (jsonify expr1 ^ "," ^ str)
+  | Pipein     (expr1, str)   -> jsontemplat "Expr" "Pipein"     (jsonify expr1 ^ ", \"" ^ str ^ "\"")
+  | Pipeout    (expr1, str)   -> jsontemplat "Expr" "Pipeoutsup" (jsonify expr1 ^ ", \"" ^ str ^ "\"")
+  | Pipeoutsup (expr1, str)   -> jsontemplat "Expr" "Pipeoutsup" (jsonify expr1 ^ ", \"" ^ str ^ "\"")
+  | Pipeerr    (expr1, str)   -> jsontemplat "Expr" "Pipeerr"    (jsonify expr1 ^ ", \"" ^ str ^ "\"")
   | Chain      (expr1, expr2) -> jsontemplat "Expr" "Chain"      (jsonify expr1 ^ "," ^ jsonify expr2)
   | Command    (l)            -> let ml = (List.map (jsonify_aux_arg) l) in 
                                     match ml with
